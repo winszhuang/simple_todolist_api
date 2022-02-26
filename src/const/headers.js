@@ -5,13 +5,4 @@ const headers = {
   'Content-Type': 'application/json'
 }
 
-function errorHandle(res, error) {
-  res.writeHead(404, headers);
-  res.write(JSON.stringify({
-    status: 'false',
-    message: error.message
-  }));
-  res.end();
-}
-
-module.exports = errorHandle;
+module.exports = headers;
