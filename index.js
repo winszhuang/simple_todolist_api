@@ -4,39 +4,36 @@ const successHandle = require('./successHandle');
 const errorHandle = require('./errorHandle');
 
 const BASE_URL = '/todos';
-const ADD_PARAMS_URL_REGEX = new RegExp(`${BASE_URL}/*.`);
+const HAS_PARAMS_URL_REGEX = new RegExp(`${BASE_URL}/*.`);
 
 const todos = [
   {
-    title: '玩遊戲',
+    title: '寫測試',
     id: uuidv4()
   },
   {
-    title: '寫程式',
+    title: '做事情',
     id: uuidv4()
   },
   {
-    title: '上課',
+    title: '發呆',
     id: uuidv4()
   },
 ]
 
 function reqListener(req, res) {
-  const url = req.url;
-  const method = req.method;
-
   let body = '';
 
   req.on('data', (chunk) => {
     body += chunk;
   });
 
-  if (method === 'GET' && url === BASE_URL) {
+  if (req.method === 'GET' && req.url === BASE_URL) {
     successHandle(res, todos);
     return;
   }
 
-  if (method === 'POST' && url === BASE_URL) {
+  if (req.method === 'POST' && req.url === BASE_URL) {
     req.on('end', () => {
       try {
         const title = JSON.parse(body).title;
@@ -51,22 +48,16 @@ function reqListener(req, res) {
         console.log('測試error: ' + error.message);
         errorHandle(res, error.message);
       }
-    });
+    })
     return;
   }
 
-  if (method === 'DELETE' && url === BASE_URL) {
-    todos.length = 0;
-    successHandle(res, todos);
-    return;
-  }
-
-  if (method === 'DELETE' && url.match(ADD_PARAMS_URL_REGEX)) {
-    const id = url.split('/').pop();
+  if (req.method === 'DELETE' && req.url.match(HAS_PARAMS_URL_REGEX)) {
+    const id = req.url.split('/').pop();
     const index = todos.findIndex(item => item.id === id);
 
     if (index === -1) {
-      errorHandle(res, 'cant find this id');
+      errorHandle(res, 'no this id');
       return;
     }
 
@@ -75,12 +66,18 @@ function reqListener(req, res) {
     return;
   }
 
-  if (method === 'PATCH' && url.match(ADD_PARAMS_URL_REGEX)) {
-    const id = url.split('/').pop();
+  if (req.method === 'DELETE' && req.url === BASE_URL) {
+    todos.length = 0;
+    successHandle(res, todos);
+    return;
+  }
+
+  if (req.method === 'PATCH' && req.url.match(HAS_PARAMS_URL_REGEX)) {
+    const id = req.url.split('/').pop();
     const index = todos.findIndex(item => item.id === id);
 
     if (index === -1) {
-      errorHandle(res, 'cant find this id');
+      errorHandle(res, 'no this id');
       return;
     }
 
@@ -92,13 +89,14 @@ function reqListener(req, res) {
         todos[index].title = title;
         successHandle(res, todos);
       } catch (error) {
+        console.log('測試error: ' + error.message);
         errorHandle(res, error.message);
       }
     })
     return;
   }
 
-  if (method === 'OPTIONS') {
+  if (req.method === 'OPTIONS') {
     successHandle(res);
     return;
   }
