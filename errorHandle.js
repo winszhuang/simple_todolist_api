@@ -1,17 +1,15 @@
 const headers = require('./headers');
 
-const errorMessageList = {
-  'Unexpected token u in JSON at position 0': 'wrong json format',
-  'Unexpected end of JSON input': 'wrong json format'
-};
+const commonTranslationMessage = {
+  "Unexpected end of JSON input": "error json format",
+  "Converting circular structure to JSON\n    --> starting at object with constructor 'Array'\n    |     index 3 -> object with constructor 'Object'\n    --- property 'data' closes the circle": "Converting circular structure to JSON"
+}
 
 function errorHandle(res, message = '404 not found') {
-  const correctMessage = errorMessageList[message] || message;
-
   res.writeHead(404, headers);
   res.write(JSON.stringify({
     status: 'false',
-    message: correctMessage
+    message: commonTranslationMessage[message] || message
   }));
   res.end();
 }

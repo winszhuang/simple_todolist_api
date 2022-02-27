@@ -1,29 +1,29 @@
 const http = require('http');
 const { v4: uuidv4 } = require('uuid');
-const errorHandle = require('./errorHandle');
 const successHandle = require('./successHandle');
+const errorHandle = require('./errorHandle');
 
 const BASE_URL = '/todos';
-const NEED_PARAMS_URL_REGEX = new RegExp(`${BASE_URL}/.*$`);
+const ADD_PARAMS_URL_REGEX = new RegExp(`${BASE_URL}/*.`);
 
 const todos = [
-  {
-    title: '做事',
-    id: uuidv4()
-  },
   {
     title: '玩遊戲',
     id: uuidv4()
   },
   {
-    title: '做運動',
+    title: '寫程式',
+    id: uuidv4()
+  },
+  {
+    title: '上課',
     id: uuidv4()
   },
 ]
 
 function reqListener(req, res) {
-  const methodName = req.method;
   const url = req.url;
+  const method = req.method;
 
   let body = '';
 
@@ -31,12 +31,12 @@ function reqListener(req, res) {
     body += chunk;
   });
 
-  if (methodName === 'GET' && url === BASE_URL) {
+  if (method === 'GET' && url === BASE_URL) {
     successHandle(res, todos);
     return;
   }
 
-  if (methodName === 'POST' && url === BASE_URL) {
+  if (method === 'POST' && url === BASE_URL) {
     req.on('end', () => {
       try {
         const title = JSON.parse(body).title;
@@ -46,49 +46,27 @@ function reqListener(req, res) {
           title,
           id: uuidv4()
         });
-
         successHandle(res, todos);
       } catch (error) {
+        console.log('測試error: ' + error.message);
         errorHandle(res, error.message);
       }
     });
     return;
   }
 
-  if (methodName === 'PATCH' && url.match(NEED_PARAMS_URL_REGEX)) {
-    try {
-      const id = req.url.split('/').pop();
-      if (!id) throw { message: 'no id, please input id' };
-
-      const index = todos.findIndex(item => item.id === id);
-      if (index === -1) throw { message: 'no existing id' };
-
-      req.on('end', () => {
-        const title = JSON.parse(body).title;
-        if (!title) throw { message: 'no title property' };
-
-        todos[index].title = title;
-        successHandle(res, todos);
-      });
-    } catch (error) {
-      console.log('測試看error message: + ' + error.message);
-      errorHandle(res, error.message);
-    }
-    return;
-  }
-
-  if (methodName === 'DELETE' && url === BASE_URL) {
+  if (method === 'DELETE' && url === BASE_URL) {
     todos.length = 0;
     successHandle(res, todos);
     return;
   }
 
-  if (methodName === 'DELETE' && url.match(NEED_PARAMS_URL_REGEX)) {
-    const id = req.url.split('/').pop();
+  if (method === 'DELETE' && url.match(ADD_PARAMS_URL_REGEX)) {
+    const id = url.split('/').pop();
     const index = todos.findIndex(item => item.id === id);
 
     if (index === -1) {
-      errorHandle(res, 'no existing id');
+      errorHandle(res, 'cant find this id');
       return;
     }
 
@@ -97,8 +75,31 @@ function reqListener(req, res) {
     return;
   }
 
-  if (methodName === 'OPTIONS') {
-    successHandle(res, '');
+  if (method === 'PATCH' && url.match(ADD_PARAMS_URL_REGEX)) {
+    const id = url.split('/').pop();
+    const index = todos.findIndex(item => item.id === id);
+
+    if (index === -1) {
+      errorHandle(res, 'cant find this id');
+      return;
+    }
+
+    req.on('end', () => {
+      try {
+        const title = JSON.parse(body).title;
+        if (!title) throw { message: 'no title property' };
+
+        todos[index].title = title;
+        successHandle(res, todos);
+      } catch (error) {
+        errorHandle(res, error.message);
+      }
+    })
+    return;
+  }
+
+  if (method === 'OPTIONS') {
+    successHandle(res);
     return;
   }
 
